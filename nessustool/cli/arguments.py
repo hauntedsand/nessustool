@@ -17,12 +17,19 @@ def configure_list_hosts_parser(parser):
     parser.add_argument('-s', '--services', action='store_true')
     parser.add_argument('nessus_scan')
 
+def configure_select_fields_parser(parser):
+
+    parser.add_argument('-f', '--fields', nargs='+', default=[], required=True)
+    parser.add_argument('-p', '--plugins',type=int, nargs='*', default=[])
+    parser.add_argument('nessus_scan')
+
 def configure_root_parser(parser):
 
     parser.add_argument('-d', '--debug', action='store_true')
     subparsers = parser.add_subparsers(dest='command')
     subparsers.required = True
     configure_list_hosts_parser(subparsers.add_parser('list-hosts'))
+    configure_select_fields_parser(subparsers.add_parser('select-fields'))
 
 def build_arg_parser():
 

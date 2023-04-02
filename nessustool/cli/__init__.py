@@ -7,6 +7,7 @@ __all__ = [
     'main'
 ]
 
+import collections
 import csv
 import json
 import os
@@ -16,6 +17,8 @@ import tabulate
 
 from .arguments import arg_parser
 from .logger import logger
+
+Issue = collections.namedtuple('Issue', ['host', 'report_item'])
 
 def list_hosts(args):
 
@@ -90,8 +93,43 @@ def list_hosts(args):
         
         print(tabulate.tabulate(formatted_rows, tablefmt='plain'))
 
+field_selectors = {
+    'fqdn':        lambda issue: issue.host.fqdn,
+    'ip':          lambda issue: issue.host.ip_address,
+    'output':      lambda issue: issue.report_item.plugin_output,
+    'plugin':      lambda issue: issue.report_item.plugin_id,
+    'plugin-name': lambda issue: issue.report_item.plugin_name,
+    'port':        lambda issue: issue.report_item.port
+}
+
+def select_fields(args):
+
+    scan = nessusfile.NessusScanFile.load(args.nessus_scan)
+
+    records = set()
+
+    for host in scan.hosts:
+        for report_item in host.report_items:
+            if len(args.plugins) == 0 or report_item.plugin_id in args.plugins:
+
+                record, issue = [], Issue(host, report_item)
+                
+                for field_name in args.fields:
+                    try:
+                        field_selector = field_selectors[field_name]
+                    except KeyError:
+                        logger.error(f"unrecognised field '{field_name}'")
+                    
+                    record.append(field_selector(issue))
+                
+                records.add(tuple(record))
+    
+    csv_writer = csv.writer(sys.stdout)
+    csv_writer.writerows(sorted(records))
+
 command_handlers = {
-    'list-hosts': list_hosts
+    'list-hosts': list_hosts,
+    'select-fields': select_fields
 }
 
 def main():
