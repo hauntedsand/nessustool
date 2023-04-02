@@ -7,8 +7,10 @@ __all__ = [
     'main'
 ]
 
+import csv
 import os
 import nessusfile
+import sys
 
 from .arguments import arg_parser
 from .logger import logger
@@ -34,24 +36,29 @@ def list_hosts(args):
         records = set(((ip_address, None, port)
             for ip_address, _, port in records))
     
-    # format strings from the sorted records
+    records = sorted(records)
+
+    if args.format == 'csv':
+        csv_writer = csv.writer(sys.stdout)
+        csv_writer.writerows(records)
     
-    formatted_records = []
+    elif args.format in ('comma-list', 'lines'):
+        formatted_records = []
 
-    for ip_address, fqdn, port in sorted(records):
+        for ip_address, fqdn, port in records:
 
-        formatted_record = str(ip_address)
+            formatted_record = str(ip_address)
 
-        if args.services:
-            formatted_record = f'{formatted_record}:{port}'
-        
-        if fqdn is not None:
-            formatted_record = f'{formatted_record} ({fqdn})'
-        
-        formatted_records.append(formatted_record)
+            if args.services:
+                formatted_record = f'{formatted_record}:{port}'
+            
+            if fqdn is not None:
+                formatted_record = f'{formatted_record} ({fqdn})'
+            
+            formatted_records.append(formatted_record)
 
-    record_separator = ', ' if args.comma_separated else os.linesep
-    print(record_separator.join(formatted_records))
+        record_separator = ', ' if args.format == 'comma-list' else os.linesep
+        print(record_separator.join(formatted_records))
 
 command_handlers = {
     'list-hosts': list_hosts
