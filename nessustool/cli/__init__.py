@@ -8,9 +8,11 @@ __all__ = [
 ]
 
 import csv
+import json
 import os
 import nessusfile
 import sys
+import tabulate
 
 from .arguments import arg_parser
 from .logger import logger
@@ -59,6 +61,34 @@ def list_hosts(args):
 
         record_separator = ', ' if args.format == 'comma-list' else os.linesep
         print(record_separator.join(formatted_records))
+    
+    elif args.format == 'json':
+        obj = []
+
+        for ip_address, fqdn, port in records:
+            obj.append({
+                'ip_address': str(ip_address),
+                'fqdn': fqdn,
+                'port': port
+            })
+        
+        print(json.dumps(obj))
+    
+    elif args.format == 'table':
+        formatted_rows = []
+
+        for ip_address, fqdn, port in records:
+            row = [str(ip_address)]
+            
+            if args.services:
+                row.append('--' if port == 0 else str(port))
+            
+            if args.with_hostnames:
+                row.append(('--' if fqdn is None else fqdn))
+            
+            formatted_rows.append(tuple(row))
+        
+        print(tabulate.tabulate(formatted_rows, tablefmt='plain'))
 
 command_handlers = {
     'list-hosts': list_hosts
